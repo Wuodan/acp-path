@@ -1,0 +1,2 @@
+# Ignore partial GitHub release download URL
+^https://github.com/agentclientprotocol/agent-client-protocol/releases/download$

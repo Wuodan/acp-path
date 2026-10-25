@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github\\/workflows\\/test\\.ya?ml$/"],
+      "matchStrings": [
+        "ACP_SCHEMA_V1_VERSION:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>github-releases) depName=(?<depName>agentclientprotocol/agent-client-protocol) versioning=(?<versioning>semver)"
+      ],
+      "extractVersionTemplate": "^schema-v1\\.(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github\\/workflows\\/test\\.ya?ml$/"],
+      "matchStrings": [
+        "ACP_SCHEMA_V2_VERSION:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>github-releases) depName=(?<depName>agentclientprotocol/agent-client-protocol) versioning=(?<versioning>semver)"
+      ],
+      "extractVersionTemplate": "^schema-v2\\.(?<version>.*)$"
+    }
+  ]
+}
