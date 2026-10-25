@@ -1,0 +1,32 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "ignorePaths": ["**/.git/**"],
+  "words": [
+    "GOARCH",
+    "GOLANGCI",
+    "Mistal",
+    "OPENROUTER",
+    "WSLENV",
+    "ZIZMOR",
+    "agentclientprotocol",
+    "gocritic",
+    "gofmt",
+    "golangci",
+    "govet",
+    "ineffassign",
+    "lycheeignore",
+    "mgechev",
+    "nemotron",
+    "opencode",
+    "openrouter",
+    "pipefail",
+    "staticcheck",
+    "testdata",
+    "travelling",
+    "unmappable",
+    "worktree",
+    "wslpath",
+    "zizmor"
+  ]
+}

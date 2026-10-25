@@ -95,8 +95,9 @@ func TestV1MCPHTTPCommandExtensionPassesThrough(t *testing.T) {
 func TestV2CommandPermissionCWD(t *testing.T) {
 	mapper := New()
 	mapper.Transform([]byte(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":2}}`), ToLinux)
-	input := []byte(`{"jsonrpc":"2.0","id":2,"method":"session/request_permission","params":{"subject":{"kind":"command","cwd":"C:\\work"}}}`)
-	want := []byte(`{"jsonrpc":"2.0","id":2,"method":"session/request_permission","params":{"subject":{"kind":"command","cwd":"/mnt/c/work"}}}`)
+	input := []byte(`{"jsonrpc":"2.0","id":2,"method":"session/request_permission","params":{"sessionId":"session","title":"Run command","options":[{"optionId":"allow","name":"Allow once","kind":"allow_once"}],"subject":{"type":"command","command":"pwd","cwd":"C:\\work"}}}`)
+	validateACPFixture(t, 2, input)
+	want := []byte(`{"jsonrpc":"2.0","id":2,"method":"session/request_permission","params":{"sessionId":"session","title":"Run command","options":[{"optionId":"allow","name":"Allow once","kind":"allow_once"}],"subject":{"type":"command","command":"pwd","cwd":"/mnt/c/work"}}}`)
 	got, _ := mapper.Transform(input, ToLinux)
 	if !sameJSON(got, want) {
 		t.Fatalf("got %s, want %s", got, want)
