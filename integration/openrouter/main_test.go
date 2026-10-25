@@ -15,7 +15,7 @@ func (recordingWriteCloser) Close() error {
 	return nil
 }
 
-func TestHandleAgentRequestSelectsAllowOncePermission(t *testing.T) {
+func TestHandleAgentMessageSelectsAllowOncePermission(t *testing.T) {
 	output := &recordingWriteCloser{}
 	client := acpClient{input: output}
 	message := map[string]any{
@@ -28,7 +28,7 @@ func TestHandleAgentRequestSelectsAllowOncePermission(t *testing.T) {
 		}},
 	}
 
-	if err := client.handleAgentRequest(message); err != nil {
+	if err := client.handleAgentMessage(message); err != nil {
 		t.Fatal(err)
 	}
 	var response map[string]any
@@ -38,6 +38,25 @@ func TestHandleAgentRequestSelectsAllowOncePermission(t *testing.T) {
 	want := map[string]any{"jsonrpc": "2.0", "id": float64(7), "result": map[string]any{"outcome": map[string]any{"outcome": "selected", "optionId": "approve"}}}
 	if !reflect.DeepEqual(response, want) {
 		t.Errorf("response = %#v, want %#v", response, want)
+	}
+}
+
+func TestHandleAgentMessageRecordsIdleState(t *testing.T) {
+	client := acpClient{idleSessions: map[string]bool{}}
+	message := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "session/update",
+		"params": map[string]any{
+			"sessionId": "session",
+			"update":    map[string]any{"sessionUpdate": "state_update", "state": "idle"},
+		},
+	}
+
+	if err := client.handleAgentMessage(message); err != nil {
+		t.Fatal(err)
+	}
+	if !client.idleSessions["session"] {
+		t.Fatal("idle state was not recorded")
 	}
 }
 
