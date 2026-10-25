@@ -1,0 +1,94 @@
+name: Integration Tests (OpenRouter)
+
+"on":
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-openrouter:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [codex, opencode, vibe]
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+      WSLENV: OPENROUTER_API_KEY/u:OPENROUTER_MODEL/u
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Set up WSL
+        run: |
+          wsl --install --distribution Ubuntu-26.04 --no-launch
+          wsl --distribution Ubuntu-26.04 -- bash -lc `
+            'apt-get update && apt-get install -y curl ca-certificates nodejs npm'
+
+      - name: Install Codex in WSL
+        if: matrix.agent == 'codex'
+        run: wsl --distribution Ubuntu-26.04 -- bash -lc 'npm install -g @openai/codex @agentclientprotocol/codex-acp'
+
+      - name: Install OpenCode in WSL
+        if: matrix.agent == 'opencode'
+        run: wsl --distribution Ubuntu-26.04 -- bash -lc 'npm install -g opencode-ai'
+
+      - name: Install Mistal Vibe in WSL
+        if: matrix.agent == 'vibe'
+        run: >
+          wsl --distribution Ubuntu-26.04 -- bash -lc
+          'export PATH="$HOME/.local/bin:$PATH"; curl -fsSL https://mistral.ai/vibe/install.sh | bash'
+
+      - name: Smoke with Windows acp-path
+        id: test_windows
+        continue-on-error: true
+        run: |
+          go build -o "$env:GITHUB_WORKSPACE/acp-path.exe" ./cmd/acp-path
+          $workspace = $env:GITHUB_WORKSPACE -replace '\\', '/'
+          $root = wsl --distribution Ubuntu-26.04 -- wslpath -u "$workspace"
+          $env:ACP_PATH_SMOKE_ABSOLUTE_MARKER_PATH = "$root/testdata/acp-path-openrouter-absolute-smoke.txt"
+          go -C integration/openrouter run . `
+            -- "$env:GITHUB_WORKSPACE/acp-path.exe" `
+            --log-file "$env:GITHUB_WORKSPACE/acp-path-windows.log" `
+            -- wsl --distribution Ubuntu-26.04 -- `
+            "$root/integration/openrouter/run-agent.sh" "${{ matrix.agent }}"
+
+      - name: Smoke with WSL acp-path
+        id: test_wsl
+        continue-on-error: true
+        run: |
+          $env:GOOS = 'linux'
+          $env:GOARCH = 'amd64'
+          go build -o "$env:GITHUB_WORKSPACE/acp-path" ./cmd/acp-path
+          Remove-Item Env:GOOS
+          Remove-Item Env:GOARCH
+          $workspace = $env:GITHUB_WORKSPACE -replace '\\', '/'
+          $root = wsl --distribution Ubuntu-26.04 -- wslpath -u "$workspace"
+          $env:ACP_PATH_SMOKE_ABSOLUTE_MARKER_PATH = "$root/testdata/acp-path-openrouter-absolute-smoke.txt"
+          go -C integration/openrouter run . `
+            -- wsl --distribution Ubuntu-26.04 -- "$root/acp-path" `
+            --log-file "$root/acp-path-wsl.log" `
+            -- "$root/integration/openrouter/run-agent.sh" "${{ matrix.agent }}"
+
+      - name: Upload acp-path logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: acp-path-logs-${{ matrix.agent }}
+          path: |
+            acp-path-windows.log
+            acp-path-wsl.log
+          if-no-files-found: warn
+
+      - name: Fail if tests failed
+        if: >-
+          always() && (steps.test_windows.outcome == 'failure' ||
+          steps.test_wsl.outcome == 'failure')
+        run: exit 1

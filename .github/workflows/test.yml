@@ -60,7 +60,9 @@ jobs:
       - name: Run tests
         id: tests
         continue-on-error: true
-        run: go test ./...
+        run: |
+          go test ./...
+          go -C integration/openrouter test ./...
         env:
           ACP_PATH_SCHEMA_DIR: ${{ runner.temp }}/acp-schema
 
