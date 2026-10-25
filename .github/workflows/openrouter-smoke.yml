@@ -34,15 +34,21 @@ jobs:
       - if: matrix.agent == 'vibe'
         shell: pwsh
         run: wsl --distribution Ubuntu-26.04 -- bash -lc 'export PATH="$HOME/.local/bin:$PATH"; curl -fsSL https://mistral.ai/vibe/install.sh | bash'
-      - shell: pwsh
+      - name: Smoke with Windows acp-path
+        shell: pwsh
         run: |
           go build -o "$env:GITHUB_WORKSPACE/acp-path.exe" ./cmd/acp-path
           $workspace = $env:GITHUB_WORKSPACE -replace '\\', '/'
           $root = wsl --distribution Ubuntu-26.04 -- wslpath -u "$workspace"
           go run ./integration/openrouter -- "$env:GITHUB_WORKSPACE/acp-path.exe" -- wsl --distribution Ubuntu-26.04 -- bash "$root/scripts/run-openrouter-agent.sh" "${{ matrix.agent }}"
+      - name: Smoke with WSL acp-path
+        shell: pwsh
+        run: |
           $env:GOOS = 'linux'
           $env:GOARCH = 'amd64'
           go build -o "$env:GITHUB_WORKSPACE/acp-path" ./cmd/acp-path
           Remove-Item Env:GOOS
           Remove-Item Env:GOARCH
-          go run ./integration/openrouter -- wsl --distribution Ubuntu-26.04 -- bash "$root/acp-path" -- bash "$root/scripts/run-openrouter-agent.sh" "${{ matrix.agent }}"
+          $workspace = $env:GITHUB_WORKSPACE -replace '\\', '/'
+          $root = wsl --distribution Ubuntu-26.04 -- wslpath -u "$workspace"
+          go run ./integration/openrouter -- wsl --distribution Ubuntu-26.04 -- "$root/acp-path" -- bash "$root/scripts/run-openrouter-agent.sh" "${{ matrix.agent }}"
