@@ -9,6 +9,7 @@ permissions:
 jobs:
   smoke:
     runs-on: windows-2025
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
