@@ -40,6 +40,7 @@ jobs:
           go build -o "$env:GITHUB_WORKSPACE/acp-path.exe" ./cmd/acp-path
           $workspace = $env:GITHUB_WORKSPACE -replace '\\', '/'
           $root = wsl --distribution Ubuntu-26.04 -- wslpath -u "$workspace"
+          $env:ACP_PATH_SMOKE_MARKER_PATH = "$root/acp-path-openrouter-smoke.txt"
           go run ./integration/openrouter -- "$env:GITHUB_WORKSPACE/acp-path.exe" --log-file "$env:GITHUB_WORKSPACE/acp-path-windows.log" -- wsl --distribution Ubuntu-26.04 -- bash "$root/scripts/run-openrouter-agent.sh" "${{ matrix.agent }}"
       - name: Smoke with WSL acp-path
         shell: pwsh
@@ -51,6 +52,7 @@ jobs:
           Remove-Item Env:GOARCH
           $workspace = $env:GITHUB_WORKSPACE -replace '\\', '/'
           $root = wsl --distribution Ubuntu-26.04 -- wslpath -u "$workspace"
+          $env:ACP_PATH_SMOKE_MARKER_PATH = "$root/acp-path-openrouter-smoke.txt"
           go run ./integration/openrouter -- wsl --distribution Ubuntu-26.04 -- "$root/acp-path" --log-file "$root/acp-path-wsl.log" -- bash "$root/scripts/run-openrouter-agent.sh" "${{ matrix.agent }}"
       - name: Upload acp-path logs
         if: always()

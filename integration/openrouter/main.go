@@ -41,6 +41,10 @@ func runSmoke(agentCommand []string) error {
 	if workspace == "" {
 		return fmt.Errorf("GITHUB_WORKSPACE is not set")
 	}
+	markerPath := os.Getenv("ACP_PATH_SMOKE_MARKER_PATH")
+	if markerPath == "" {
+		return fmt.Errorf("ACP_PATH_SMOKE_MARKER_PATH is not set")
+	}
 
 	target := filepath.Join(workspace, marker+".txt")
 	if err := removePreviousMarker(target); err != nil {
@@ -63,7 +67,7 @@ func runSmoke(agentCommand []string) error {
 	if err != nil {
 		return err
 	}
-	if err := askForMarkerFile(client, sessionID); err != nil {
+	if err := askForMarkerFile(client, sessionID, markerPath); err != nil {
 		return err
 	}
 	return checkMarkerFile(target)
@@ -123,8 +127,8 @@ func createSession(client *acpClient, workspace string) (string, error) {
 	return sessionID, nil
 }
 
-func askForMarkerFile(client *acpClient, sessionID string) error {
-	prompt := "Create " + marker + ".txt in the current workspace containing exactly " + marker + "."
+func askForMarkerFile(client *acpClient, sessionID, markerPath string) error {
+	prompt := "Create the file at " + markerPath + " containing exactly " + marker + "."
 	_, err := client.request("session/prompt", map[string]any{"sessionId": sessionID, "prompt": []any{map[string]string{"type": "text", "text": prompt}}})
 	return err
 }
