@@ -1,0 +1,43 @@
+name: OpenRouter smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [codex, opencode, vibe]
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      WSLENV: OPENROUTER_API_KEY/u
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - shell: pwsh
+        run: |
+          wsl --install --distribution Ubuntu-24.04 --no-launch
+          wsl --distribution Ubuntu-24.04 -- bash -lc 'apt-get update && apt-get install -y curl ca-certificates nodejs npm'
+      - if: matrix.agent == 'codex'
+        shell: pwsh
+        run: wsl --distribution Ubuntu-24.04 -- bash -lc 'npm install -g @openai/codex @agentclientprotocol/codex-acp'
+      - if: matrix.agent == 'opencode'
+        shell: pwsh
+        run: wsl --distribution Ubuntu-24.04 -- bash -lc 'npm install -g opencode-ai'
+      - if: matrix.agent == 'vibe'
+        shell: pwsh
+        run: wsl --distribution Ubuntu-24.04 -- bash -lc 'curl -fsSL https://mistral.ai/vibe/install.sh | bash'
+      - shell: pwsh
+        run: |
+          $env:GOOS = 'linux'
+          $env:GOARCH = 'amd64'
+          go build -o "$env:GITHUB_WORKSPACE/acp-path" ./cmd/acp-path
+          $root = wsl --distribution Ubuntu-24.04 -- wslpath -u "$env:GITHUB_WORKSPACE"
+          go run ./integration/openrouter -- wsl --distribution Ubuntu-24.04 -- bash "$root/scripts/run-openrouter-agent.sh" "$root/acp-path" "${{ matrix.agent }}"
