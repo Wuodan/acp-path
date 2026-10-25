@@ -1,0 +1,165 @@
+{
+  "rules": [
+    {
+      "method": "session/new",
+      "payload": "params",
+      "selectors": [
+        "cwd",
+        "additionalDirectories[]",
+        "mcpServers[args=*].command"
+      ]
+    },
+    {
+      "method": "session/load",
+      "payload": "params",
+      "selectors": [
+        "cwd",
+        "additionalDirectories[]",
+        "mcpServers[args=*].command"
+      ]
+    },
+    {
+      "method": "session/resume",
+      "payload": "params",
+      "selectors": [
+        "cwd",
+        "additionalDirectories[]",
+        "mcpServers[args=*].command"
+      ]
+    },
+    {
+      "method": "session/list",
+      "payload": "params",
+      "selectors": [
+        "cwd"
+      ]
+    },
+    {
+      "method": "session/list",
+      "payload": "result",
+      "selectors": [
+        "sessions[].cwd",
+        "sessions[].additionalDirectories[]"
+      ]
+    },
+    {
+      "method": "session/prompt",
+      "payload": "params",
+      "selectors": [
+        "prompt[type=image].uri",
+        "prompt[type=resource_link].uri",
+        "prompt[type=resource_link].icons[].src",
+        "prompt[type=resource].resource.uri"
+      ]
+    },
+    {
+      "method": "fs/read_text_file",
+      "payload": "params",
+      "selectors": [
+        "path"
+      ]
+    },
+    {
+      "method": "fs/write_text_file",
+      "payload": "params",
+      "selectors": [
+        "path"
+      ]
+    },
+    {
+      "method": "terminal/create",
+      "payload": "params",
+      "selectors": [
+        "cwd"
+      ]
+    },
+    {
+      "method": "session/update",
+      "payload": "params",
+      "selectors": [
+        "update[sessionUpdate=terminal_update].cwd",
+        "update[sessionUpdate=plan_update].plan[type=file].uri",
+        "update[sessionUpdate=tool_call].toolCall.locations[].path",
+        "update[sessionUpdate=tool_call_update].toolCall.locations[].path",
+        "update[sessionUpdate=tool_call].toolCall.content[type=diff].path",
+        "update[sessionUpdate=tool_call_update].toolCall.content[type=diff].path",
+        "update[sessionUpdate=tool_call].toolCall.content[type=diff].changes[].path",
+        "update[sessionUpdate=tool_call_update].toolCall.content[type=diff].changes[].path",
+        "update[sessionUpdate=tool_call].toolCall.content[type=diff].changes[].oldPath",
+        "update[sessionUpdate=tool_call_update].toolCall.content[type=diff].changes[].oldPath"
+      ]
+    },
+    {
+      "method": "session/request_permission",
+      "payload": "params",
+      "selectors": [
+        "toolCall.locations[].path",
+        "toolCall.content[type=diff].path",
+        "toolCall.content[type=diff].changes[].path",
+        "toolCall.content[type=diff].changes[].oldPath",
+        "toolCall.content[type=image].uri",
+        "toolCall.content[type=resource_link].uri",
+        "toolCall.content[type=resource_link].icons[].src",
+        "toolCall.content[type=resource].resource.uri",
+        "toolCall.content[][type=image].uri",
+        "toolCall.content[][type=resource_link].uri",
+        "toolCall.content[][type=resource_link].icons[].src",
+        "toolCall.content[][type=resource].resource.uri",
+        "toolCall.content[type=content].content[type=image].uri",
+        "toolCall.content[type=content].content[type=resource_link].uri",
+        "toolCall.content[type=content].content[type=resource_link].icons[].src",
+        "toolCall.content[type=content].content[type=resource].resource.uri",
+        "toolCall.content[][type=diff].path",
+        "toolCall.content[][type=diff].changes[].path",
+        "toolCall.content[][type=diff].changes[].oldPath",
+        "toolCall.content[][type=content].content[type=image].uri",
+        "toolCall.content[][type=content].content[type=resource_link].uri",
+        "toolCall.content[][type=content].content[type=resource_link].icons[].src",
+        "toolCall.content[][type=content].content[type=resource].resource.uri"
+      ]
+    },
+    {
+      "method": "session/update",
+      "payload": "params",
+      "selectors": [
+        "update[sessionUpdate=user_message_chunk|agent_message_chunk|agent_thought_chunk|compaction_summary_chunk|tool_call_content_chunk].content[type=image].uri",
+        "update[sessionUpdate=user_message_chunk|agent_message_chunk|agent_thought_chunk|compaction_summary_chunk|tool_call_content_chunk].content[type=resource_link].uri",
+        "update[sessionUpdate=user_message_chunk|agent_message_chunk|agent_thought_chunk|compaction_summary_chunk|tool_call_content_chunk].content[type=resource_link].icons[].src",
+        "update[sessionUpdate=user_message_chunk|agent_message_chunk|agent_thought_chunk|compaction_summary_chunk|tool_call_content_chunk].content[type=resource].resource.uri",
+        "update[sessionUpdate=user_message|agent_message|agent_thought].content[][type=image].uri",
+        "update[sessionUpdate=user_message|agent_message|agent_thought].content[][type=resource_link].uri",
+        "update[sessionUpdate=user_message|agent_message|agent_thought].content[][type=resource_link].icons[].src",
+        "update[sessionUpdate=user_message|agent_message|agent_thought].content[][type=resource].resource.uri"
+      ]
+    },
+    {
+      "method": "session/update",
+      "payload": "params",
+      "selectors": [
+        "update[sessionUpdate=tool_call|tool_call_update].locations[].path",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=diff].path",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=diff].changes[].path",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=diff].changes[].oldPath",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=image].uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=resource_link].uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=resource_link].icons[].src",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=resource].resource.uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=image].uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=resource_link].uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=resource_link].icons[].src",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=resource].resource.uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=content].content[type=image].uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=content].content[type=resource_link].uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=content].content[type=resource_link].icons[].src",
+        "update[sessionUpdate=tool_call|tool_call_update].content[type=content].content[type=resource].resource.uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=diff].path",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=diff].changes[].path",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=diff].changes[].oldPath",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=content].content[type=image].uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=content].content[type=resource_link].uri",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=content].content[type=resource_link].icons[].src",
+        "update[sessionUpdate=tool_call|tool_call_update].content[][type=content].content[type=resource].resource.uri"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+# yamllint disable-line rule:line-length
+v1: 1.26.0 # renovate: datasource=github-releases depName=agentclientprotocol/agent-client-protocol versioning=semver extractVersion=^schema-v1\.(?<version>.*)$
+# yamllint disable-line rule:line-length
+v2: 2.0.0-alpha.9 # renovate: datasource=github-releases depName=agentclientprotocol/agent-client-protocol versioning=semver extractVersion=^schema-v2\.(?<version>.*)$
