@@ -1,0 +1,6 @@
+[[providers]]
+name = "openrouter"
+api_base = "https://openrouter.ai/api/v1"
+api_key_env_var = "OPENROUTER_API_KEY"
+api_style = "openai"
+backend = "generic"
