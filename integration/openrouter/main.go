@@ -160,7 +160,7 @@ func (client *acpClient) request(method string, params map[string]any) (map[stri
 		if message["id"] == float64(id) {
 			return responseResult(method, message)
 		}
-		if err := client.rejectAgentRequest(message); err != nil {
+		if err := client.handleAgentRequest(message); err != nil {
 			return nil, err
 		}
 	}
@@ -180,14 +180,41 @@ func responseResult(method string, message map[string]any) (map[string]any, erro
 	}
 	return result, nil
 }
-func (client *acpClient) rejectAgentRequest(message map[string]any) error {
+func (client *acpClient) handleAgentRequest(message map[string]any) error {
 	id, hasID := message["id"]
-	_, hasMethod := message["method"]
+	method, hasMethod := message["method"].(string)
 	if !hasID || !hasMethod {
 		return nil
 	}
+	if method == "session/request_permission" {
+		return client.grantPermission(id, message["params"])
+	}
 	return client.send(map[string]any{"jsonrpc": "2.0", "id": id, "error": map[string]any{"code": -32601, "message": "unsupported by smoke test"}})
 }
+
+func (client *acpClient) grantPermission(id any, value any) error {
+	params, ok := value.(map[string]any)
+	if !ok {
+		return fmt.Errorf("permission request has non-object params")
+	}
+	options, ok := params["options"].([]any)
+	if !ok {
+		return fmt.Errorf("permission request has no options")
+	}
+	for _, value := range options {
+		option, ok := value.(map[string]any)
+		if !ok || option["kind"] != "allow_once" {
+			continue
+		}
+		optionID, ok := option["optionId"].(string)
+		if !ok {
+			return fmt.Errorf("allow_once permission option has no optionId")
+		}
+		return client.send(map[string]any{"jsonrpc": "2.0", "id": id, "result": map[string]any{"outcome": map[string]string{"outcome": "selected", "optionId": optionID}}})
+	}
+	return fmt.Errorf("permission request has no allow_once option")
+}
+
 func (client *acpClient) send(message map[string]any) error {
 	encoded, err := json.Marshal(message)
 	if err != nil {
