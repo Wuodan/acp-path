@@ -140,10 +140,15 @@ func checkMarkerFile(target string) error {
 	if err != nil {
 		return fmt.Errorf("read marker file: %w", err)
 	}
-	if string(contents) != marker {
+	if !isMarkerContents(contents) {
 		return fmt.Errorf("marker contents = %q, want %q", contents, marker)
 	}
 	return nil
+}
+
+func isMarkerContents(contents []byte) bool {
+	text := string(contents)
+	return text == marker || text == marker+"\n" || text == marker+"\r\n"
 }
 
 func (client *acpClient) request(method string, params map[string]any) (map[string]any, error) {

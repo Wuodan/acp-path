@@ -40,3 +40,23 @@ func TestHandleAgentRequestSelectsAllowOncePermission(t *testing.T) {
 		t.Errorf("response = %#v, want %#v", response, want)
 	}
 }
+
+func TestIsMarkerContents(t *testing.T) {
+	tests := []struct {
+		name     string
+		contents string
+		want     bool
+	}{
+		{name: "exact", contents: marker, want: true},
+		{name: "unix line ending", contents: marker + "\n", want: true},
+		{name: "windows line ending", contents: marker + "\r\n", want: true},
+		{name: "extra text", contents: marker + " extra", want: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := isMarkerContents([]byte(test.contents)); got != test.want {
+				t.Errorf("isMarkerContents(%q) = %t, want %t", test.contents, got, test.want)
+			}
+		})
+	}
+}
