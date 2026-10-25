@@ -1,4 +1,4 @@
-model = "openrouter/free"
+model = "nvidia/nemotron-3-ultra-550b-a55b:free"
 model_provider = "openrouter"
 
 [model_providers.openrouter]

@@ -6,6 +6,6 @@ api_style = "openai"
 backend = "generic"
 
 [[models]]
-name = "openrouter/free"
+name = "nvidia/nemotron-3-ultra-550b-a55b:free"
 provider = "openrouter"
 alias = "openrouter-free"
