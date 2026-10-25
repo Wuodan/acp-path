@@ -14,6 +14,7 @@ import (
 )
 
 const marker = "acp-path-openrouter-smoke"
+const absoluteMarker = "acp-path-openrouter-absolute-smoke"
 
 const smokeTimeout = 100 * time.Minute
 const shutdownTimeout = 30 * time.Second
@@ -41,13 +42,17 @@ func runSmoke(agentCommand []string) error {
 	if workspace == "" {
 		return fmt.Errorf("GITHUB_WORKSPACE is not set")
 	}
-	markerPath := os.Getenv("ACP_PATH_SMOKE_MARKER_PATH")
-	if markerPath == "" {
-		return fmt.Errorf("ACP_PATH_SMOKE_MARKER_PATH is not set")
+	absoluteMarkerPath := os.Getenv("ACP_PATH_SMOKE_ABSOLUTE_MARKER_PATH")
+	if absoluteMarkerPath == "" {
+		return fmt.Errorf("ACP_PATH_SMOKE_ABSOLUTE_MARKER_PATH is not set")
 	}
 
-	target := filepath.Join(workspace, marker+".txt")
-	if err := removePreviousMarker(target); err != nil {
+	markerTarget := filepath.Join(workspace, marker+".txt")
+	absoluteMarkerTarget := filepath.Join(workspace, "testdata", absoluteMarker+".txt")
+	if err := removePreviousMarker(markerTarget); err != nil {
+		return err
+	}
+	if err := removePreviousMarker(absoluteMarkerTarget); err != nil {
 		return err
 	}
 
@@ -67,10 +72,13 @@ func runSmoke(agentCommand []string) error {
 	if err != nil {
 		return err
 	}
-	if err := askForMarkerFile(client, sessionID, markerPath); err != nil {
+	if err := askForMarkerFiles(client, sessionID, absoluteMarkerPath); err != nil {
 		return err
 	}
-	return checkMarkerFile(target)
+	if err := checkMarkerFile(markerTarget, marker); err != nil {
+		return err
+	}
+	return checkMarkerFile(absoluteMarkerTarget, absoluteMarker)
 }
 
 func startAgent(smokeContext context.Context, arguments []string) (*acpClient, *exec.Cmd, error) {
@@ -127,8 +135,8 @@ func createSession(client *acpClient, workspace string) (string, error) {
 	return sessionID, nil
 }
 
-func askForMarkerFile(client *acpClient, sessionID, markerPath string) error {
-	prompt := "Create the file at " + markerPath + " containing exactly " + marker + "."
+func askForMarkerFiles(client *acpClient, sessionID, absoluteMarkerPath string) error {
+	prompt := "Create " + marker + ".txt directly in the current workspace containing exactly " + marker + ". Then create the file at " + absoluteMarkerPath + " containing exactly " + absoluteMarker + "."
 	_, err := client.request("session/prompt", map[string]any{"sessionId": sessionID, "prompt": []any{map[string]string{"type": "text", "text": prompt}}})
 	return err
 }
@@ -139,18 +147,18 @@ func removePreviousMarker(target string) error {
 	}
 	return nil
 }
-func checkMarkerFile(target string) error {
+func checkMarkerFile(target, marker string) error {
 	contents, err := os.ReadFile(target)
 	if err != nil {
 		return fmt.Errorf("read marker file: %w", err)
 	}
-	if !isMarkerContents(contents) {
+	if !isMarkerContents(contents, marker) {
 		return fmt.Errorf("marker contents = %q, want %q", contents, marker)
 	}
 	return nil
 }
 
-func isMarkerContents(contents []byte) bool {
+func isMarkerContents(contents []byte, marker string) bool {
 	text := string(contents)
 	return text == marker || text == marker+"\n" || text == marker+"\r\n"
 }

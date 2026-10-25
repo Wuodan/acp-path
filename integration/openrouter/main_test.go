@@ -54,7 +54,7 @@ func TestIsMarkerContents(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := isMarkerContents([]byte(test.contents)); got != test.want {
+			if got := isMarkerContents([]byte(test.contents), marker); got != test.want {
 				t.Errorf("isMarkerContents(%q) = %t, want %t", test.contents, got, test.want)
 			}
 		})
