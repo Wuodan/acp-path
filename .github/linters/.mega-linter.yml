@@ -1,0 +1,40 @@
+FORMATTERS_DISABLE_ERRORS: false
+LINTER_RULES_PATH: .github/linters
+DISABLE_LINTERS:
+  - GO_GOLANGCI_LINT
+  - GO_REVIVE
+
+PRE_COMMANDS:
+  - command: ln -s .github/linters/.lycheeignore .lycheeignore
+    cwd: workspace
+    run_before_linters: true
+    continue_if_failed: false
+
+POST_COMMANDS:
+  - command: rm .lycheeignore
+    cwd: workspace
+    continue_if_failed: false
+
+# golangci-lint
+GO_GOLANGCI_LINT_ARGUMENTS: ./...
+
+# jscpd
+COPYPASTE_JSCPD_ARGUMENTS: "--threshold 5"
+
+# prettier
+JSON_PRETTIER_FILTER_REGEX_EXCLUDE: '^internal/transform/pathrules/v[12]\.json$'
+
+# osv-scanner
+REPOSITORY_OSV_SCANNER_UNSECURED_ENV_VARIABLES:
+  - GOMODCACHE
+  - GOCACHE
+
+# revive
+GO_REVIVE_CONFIG_FILE: revive.toml
+
+# shfmt
+BASH_SHFMT_ARGUMENTS: "--indent 2 -case-indent"
+
+# zizmor
+ACTION_ZIZMOR_UNSECURED_ENV_VARIABLES:
+  - GITHUB_TOKEN

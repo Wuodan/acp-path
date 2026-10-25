@@ -1,0 +1,70 @@
+name: Test
+
+"on":
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Download ACP schemas
+        env:
+          ACP_SCHEMA_RELEASE_URL: https://github.com/agentclientprotocol/agent-client-protocol/releases/download
+        run: |
+          ACP_SCHEMA_V1_VERSION="$(awk '$1 == "v1:" { print $2 }' .github/versions/acp-schema.yml)"
+          ACP_SCHEMA_V2_VERSION="$(awk '$1 == "v2:" { print $2 }' .github/versions/acp-schema.yml)"
+          mkdir -p "$RUNNER_TEMP/acp-schema/v1" "$RUNNER_TEMP/acp-schema/v2"
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/acp-schema/v1/schema.json" \
+            "$ACP_SCHEMA_RELEASE_URL/schema-v${ACP_SCHEMA_V1_VERSION}/schema.json"
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/acp-schema/v2/schema.json" \
+            "$ACP_SCHEMA_RELEASE_URL/schema-v${ACP_SCHEMA_V2_VERSION}/schema.unstable.json"
+
+      - name: Verify embedded ACP schemas
+        run: |
+          cmp "$RUNNER_TEMP/acp-schema/v1/schema.json" internal/transform/acpschema/v1.json
+          cmp "$RUNNER_TEMP/acp-schema/v2/schema.json" internal/transform/acpschema/v2.json
+
+      - name: Run golangci-lint
+        id: golangci-lint
+        continue-on-error: true
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.15.0 # renovate: datasource=github-releases depName=golangci/golangci-lint versioning=semver
+          args: --config=${{ github.workspace }}/.github/linters/.golangci.yml
+          experimental: automatic-module-directories
+
+      - name: Run Revive
+        id: revive
+        continue-on-error: true
+        env:
+          REVIVE_VERSION: v1.17.1 # renovate: datasource=github-releases depName=mgechev/revive versioning=semver
+        run: |
+          go install github.com/mgechev/revive@"$REVIVE_VERSION"
+          revive -set_exit_status -config .github/linters/revive.toml ./...
+
+      - name: Run tests
+        id: tests
+        continue-on-error: true
+        run: go test ./...
+        env:
+          ACP_PATH_SCHEMA_DIR: ${{ runner.temp }}/acp-schema
+
+      - name: Fail if linting or tests failed
+        if: >-
+          always() && (steps.golangci-lint.outcome == 'failure' ||
+          steps.revive.outcome == 'failure' ||
+          steps.tests.outcome == 'failure')
+        run: exit 1

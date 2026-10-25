@@ -1,0 +1,44 @@
+name: Change Validation
+
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  super-linter:
+    name: Run super-linter
+    uses: ./.github/workflows/lint-super-linter.yml
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+  required-status-checks:
+    name: "Required Status Checks"  # do not change, used in ruleset "Required Status Checks"
+    if: ${{ always() }}
+    needs:
+      - test
+      - super-linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check validation job results
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          jq --exit-status \
+            'all(.[]; .result == "success" or .result == "skipped")' \
+            <<< "$NEEDS"
