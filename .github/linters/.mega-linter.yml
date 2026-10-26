@@ -13,6 +13,9 @@ GO_REVIVE_CONFIG_FILE: revive.toml
 # golangci-lint
 GO_GOLANGCI_LINT_ARGUMENTS: ./...
 
+# shfmt
+BASH_SHFMT_ARGUMENTS: "--case-indent"
+
 # zizmor
 ACTION_ZIZMOR_UNSECURED_ENV_VARIABLES:
   - GITHUB_TOKEN
