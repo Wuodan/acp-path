@@ -3,6 +3,16 @@
   "customManagers": [
     {
       "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/integration-test-acp-tck\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "ref:[ \\t]*(?<currentDigest>[0-9a-f]{40})[ \\t]*# renovate: datasource=(?<datasource>github-tags) depName=(?<depName>agentclientprotocol/acp-tck) versioning=(?<versioning>semver) currentValue=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)"
+      ],
+      "autoReplaceStringTemplate": "ref: {{{newDigest}}} # renovate: datasource=github-tags depName=agentclientprotocol/acp-tck versioning=semver currentValue={{{newValue}}}"
+    },
+    {
+      "customType": "regex",
       "managerFilePatterns": ["/^\\.github\\/workflows\\/test\\.ya?ml$/"],
       "matchStrings": [
         "ACP_SCHEMA_V1_VERSION:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>github-releases) depName=(?<depName>agentclientprotocol/agent-client-protocol) versioning=(?<versioning>semver)"
