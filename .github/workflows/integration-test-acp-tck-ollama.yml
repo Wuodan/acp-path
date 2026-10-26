@@ -1,0 +1,103 @@
+name: Integration Tests (ACP TCK with Ollama)
+
+"on":
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-acp-tck-ollama:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [codex, opencode, vibe]
+    env:
+      OLLAMA_MODEL: qwen3:8b
+      WSLENV: OLLAMA_MODEL/u
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: go.mod
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+
+      - name: Checkout agentclientprotocol/acp-tck
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+          repository: agentclientprotocol/acp-tck
+          # yamllint disable-line rule:line-length
+          ref: 13b1dfbd0178819e9e49285642a94445b3a96423 # renovate: datasource=github-tags depName=agentclientprotocol/acp-tck versioning=semver currentValue=v0.1.0
+          path: acp-tck
+
+      - name: Set up WSL
+        run: |
+          wsl --install --distribution Ubuntu-26.04 --no-launch
+          wsl --distribution Ubuntu-26.04 -- bash -lc 'apt-get update &&
+            apt-get install -y curl ca-certificates xz-utils'
+
+      - name: Install and start Ollama in WSL
+        run: |
+          $workspace = $env:GITHUB_WORKSPACE -replace '\\', '/'
+          $root = wsl --distribution Ubuntu-26.04 -- wslpath -u "$workspace"
+          wsl --distribution Ubuntu-26.04 -- "$root/integration/ollama/install-ollama.sh"
+
+      - name: Pull Ollama model
+        run: wsl --distribution Ubuntu-26.04 -- ollama pull "$env:OLLAMA_MODEL"
+
+      - name: Set up Node.js in WSL
+        run: |
+          $workspace = $env:GITHUB_WORKSPACE -replace '\\', '/'
+          $root = wsl --distribution Ubuntu-26.04 -- wslpath -u "$workspace"
+          wsl --distribution Ubuntu-26.04 -- "$root/integration/ollama/install-node.sh"
+
+      - name: Install Codex in WSL
+        if: matrix.agent == 'codex'
+        run: wsl --distribution Ubuntu-26.04 -- bash -lc 'npm install -g @openai/codex @agentclientprotocol/codex-acp'
+
+      - name: Install OpenCode in WSL
+        if: matrix.agent == 'opencode'
+        run: wsl --distribution Ubuntu-26.04 -- bash -lc 'npm install -g opencode-ai'
+
+      - name: Install Mistal Vibe in WSL
+        if: matrix.agent == 'vibe'
+        run: >
+          wsl --distribution Ubuntu-26.04 -- bash -lc
+          'export PATH="$HOME/.local/bin:$PATH"; curl -fsSL https://mistral.ai/vibe/install.sh | bash'
+
+      - name: Run informational v1 TCK through Windows acp-path
+        id: test
+        continue-on-error: true
+        run: |
+          go build -o "$env:GITHUB_WORKSPACE/acp-path.exe" ./cmd/acp-path
+          $workspace = $env:GITHUB_WORKSPACE -replace '\\', '/'
+          $root = wsl --distribution Ubuntu-26.04 -- wslpath -u "$workspace"
+          $agentCwd = Join-Path $env:RUNNER_TEMP 'acp-tck-workspace'
+          New-Item -ItemType Directory -Force -Path $agentCwd | Out-Null
+          uv --project "$env:GITHUB_WORKSPACE/acp-tck" run acp-tck `
+            --agent-cwd $agentCwd `
+            --startup-timeout 120 --timeout 600 --test-timeout 900 `
+            --report-json "$env:GITHUB_WORKSPACE/acp-tck-report.json" `
+            -- "$env:GITHUB_WORKSPACE/acp-path.exe" `
+            --log-file "$env:GITHUB_WORKSPACE/acp-tck-acp-path.log" `
+            -- wsl --distribution Ubuntu-26.04 -- `
+            "$root/integration/ollama/run-agent.sh" "${{ matrix.agent }}"
+
+      - name: Upload TCK report and acp-path log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: acp-tck-${{ matrix.agent }}
+          path: |
+            acp-tck-report.json
+            acp-tck-acp-path.log
+          if-no-files-found: warn
+
+      - name: Fail if test failed
+        if: always() && steps.test.outcome == 'failure'
+        run: exit 1
