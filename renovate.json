@@ -13,9 +13,7 @@
     },
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github\\/workflows\\/test\\.ya?ml$/"
-      ],
+      "managerFilePatterns": ["/^\\.github\\/workflows\\/test\\.ya?ml$/"],
       "matchStrings": [
         "ACP_SCHEMA_V1_VERSION:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>github-releases) depName=(?<depName>agentclientprotocol/agent-client-protocol) versioning=(?<versioning>semver)"
       ],
@@ -23,9 +21,7 @@
     },
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github\\/workflows\\/test\\.ya?ml$/"
-      ],
+      "managerFilePatterns": ["/^\\.github\\/workflows\\/test\\.ya?ml$/"],
       "matchStrings": [
         "ACP_SCHEMA_V2_VERSION:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>github-releases) depName=(?<depName>agentclientprotocol/agent-client-protocol) versioning=(?<versioning>semver)"
       ],
