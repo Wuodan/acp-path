@@ -1,0 +1,77 @@
+name: Verify WinGet Manifest
+
+"on":
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-2025
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download published Windows archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: pwsh
+        run: |
+          $assetDirectory = Join-Path $env:RUNNER_TEMP 'acp-wsl-release-assets'
+          New-Item -ItemType Directory -Force -Path $assetDirectory | Out-Null
+          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY `
+            --dir $assetDirectory --pattern acp-wsl-windows-amd64.zip
+          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY `
+            --dir $assetDirectory --pattern acp-wsl-windows-arm64.zip
+          "WINGET_ASSET_DIRECTORY=$assetDirectory" >> $env:GITHUB_ENV
+
+      - name: Generate release WinGet manifest
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: pwsh
+        run: |
+          $manifestDirectory = Join-Path $env:RUNNER_TEMP 'winget-manifest'
+          .github/scripts/New-WinGetManifest.ps1 `
+            -Version ($env:RELEASE_TAG -replace '^v', '') `
+            -ReleaseUrl "https://github.com/$env:GITHUB_REPOSITORY/releases/tag/$env:RELEASE_TAG" `
+            -AssetDirectory $env:WINGET_ASSET_DIRECTORY `
+            -OutputDirectory $manifestDirectory
+          "WINGET_MANIFEST_DIRECTORY=$manifestDirectory" >> $env:GITHUB_ENV
+
+      - name: Install WinGet
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WINGET_CLIENT_MODULE_VERSION: 1.29.380
+          # yamllint disable-line rule:line-length
+          WINGET_CLIENT_VERSION: 1.29.380 # renovate: datasource=github-releases depName=microsoft/winget-cli versioning=semver
+        shell: pwsh
+        run: |
+          Install-Module Microsoft.WinGet.Client -Repository PSGallery `
+            -RequiredVersion $env:WINGET_CLIENT_MODULE_VERSION -Scope CurrentUser -Force
+          Import-Module Microsoft.WinGet.Client `
+            -RequiredVersion $env:WINGET_CLIENT_MODULE_VERSION
+          Repair-WinGetPackageManager -Version $env:WINGET_CLIENT_VERSION -Force
+          winget --version
+
+      - name: Validate published WinGet manifest
+        shell: pwsh
+        run: winget validate --manifest $env:WINGET_MANIFEST_DIRECTORY
+
+      - name: Test published WinGet installation
+        shell: pwsh
+        run: |
+          winget settings --enable LocalManifestFiles
+          winget install --manifest $env:WINGET_MANIFEST_DIRECTORY `
+            --accept-package-agreements --disable-interactivity
+
+      - name: Upload release WinGet manifest
+        if: success() || failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: winget-release-manifest-${{ github.ref_name }}
+          path: ${{ env.WINGET_MANIFEST_DIRECTORY }}
+          if-no-files-found: error
