@@ -1,0 +1,95 @@
+name: WinGet
+
+"on":
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-2025
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          cache: false
+          go-version-file: go.mod
+
+      - name: Build Windows release archives
+        env:
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'dev' }}
+        shell: pwsh
+        run: |
+          $assetDirectory = Join-Path $env:RUNNER_TEMP 'acp-wsl-release-assets'
+          New-Item -ItemType Directory -Force -Path $assetDirectory | Out-Null
+          foreach ($arch in 'amd64', 'arm64') {
+            $binary = Join-Path $assetDirectory "acp-wsl-windows-$arch.exe"
+            $debugBinary = Join-Path $assetDirectory "acp-wsl-debug-windows-$arch.exe"
+            $env:GOOS = 'windows'
+            $env:GOARCH = $arch
+            $env:CGO_ENABLED = '0'
+            go build -trimpath -ldflags "-X main.version=$env:RELEASE_TAG" -o $binary ./cmd/acp-wsl
+            go build -trimpath -ldflags "-X main.version=$env:RELEASE_TAG" -o $debugBinary ./cmd/acp-wsl-debug
+            $archiveDirectory = Join-Path $env:RUNNER_TEMP "acp-wsl-$arch"
+            New-Item -ItemType Directory -Force -Path $archiveDirectory | Out-Null
+            Copy-Item $binary (Join-Path $archiveDirectory 'acp-wsl.exe')
+            Copy-Item $debugBinary (Join-Path $archiveDirectory 'acp-wsl-debug.exe')
+            Compress-Archive -Path (Join-Path $archiveDirectory 'acp-wsl.exe') `
+              -DestinationPath (Join-Path $assetDirectory "acp-wsl-windows-$arch.zip")
+          }
+          "WINGET_ASSET_DIRECTORY=$assetDirectory" >> $env:GITHUB_ENV
+
+      - name: Generate WinGet manifest
+        env:
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v0.0.0' }}
+        shell: pwsh
+        run: |
+          $manifestDirectory = Join-Path $env:RUNNER_TEMP 'winget-manifest'
+          .github/scripts/New-WinGetManifest.ps1 `
+            -Version ($env:RELEASE_TAG -replace '^v', '') `
+            -ReleaseUrl "https://github.com/$env:GITHUB_REPOSITORY/releases/tag/$env:RELEASE_TAG" `
+            -AssetDirectory $env:WINGET_ASSET_DIRECTORY `
+            -OutputDirectory $manifestDirectory
+          "WINGET_MANIFEST_DIRECTORY=$manifestDirectory" >> $env:GITHUB_ENV
+
+      - name: Install WinGet
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WINGET_CLIENT_MODULE_VERSION: 1.29.380
+          # yamllint disable-line rule:line-length
+          WINGET_CLIENT_VERSION: 1.29.380 # renovate: datasource=github-releases depName=microsoft/winget-cli versioning=semver
+        shell: pwsh
+        run: |
+          Install-Module Microsoft.WinGet.Client -Repository PSGallery `
+            -RequiredVersion $env:WINGET_CLIENT_MODULE_VERSION -Scope CurrentUser -Force
+          Import-Module Microsoft.WinGet.Client `
+            -RequiredVersion $env:WINGET_CLIENT_MODULE_VERSION
+          Repair-WinGetPackageManager -Version $env:WINGET_CLIENT_VERSION -Force
+          winget --version
+
+      - name: Validate WinGet manifest
+        shell: pwsh
+        run: winget validate --manifest $env:WINGET_MANIFEST_DIRECTORY
+
+      - name: Upload WinGet manifest
+        if: success() || failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: winget-manifest-${{ github.sha }}
+          path: ${{ env.WINGET_MANIFEST_DIRECTORY }}
+          if-no-files-found: error
+
+      - name: Upload verified Windows artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: winget-release-assets
+          path: ${{ env.WINGET_ASSET_DIRECTORY }}
+          if-no-files-found: error
