@@ -17,6 +17,22 @@ Download the release binary for your operating system and architecture from
    - on Windows, rename to `acp-wsl.exe`.
    - on WSL, rename to `acp-wsl` and make executable.
 
+### GitHub Actions
+
+Use a pinned `acp-wsl` release in CI to download release assets.
+
+```yaml
+- uses: aicage/acp-wsl@<full-commit-sha> # vX.Y.Z
+  id: acp-wsl
+  with:
+    files: acp-wsl-linux-arm64
+    destination: ${{ runner.temp }}/acp-wsl
+```
+
+- `files` accepts whitespace-separated asset names. Omit it to use only the `release-tag` output.
+- `destination` defaults to `$GITHUB_WORKSPACE`.
+- For the pinned version of `acp-wsl` in the output use `${{ steps.acp-wsl.outputs.release-tag }}`
+
 ### Build from source
 
 To build from source instead, use the Go version declared in `go.mod`:

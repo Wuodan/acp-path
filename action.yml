@@ -1,0 +1,52 @@
+name: Get acp-wsl release and optionally files
+description: Resolve, download, and verify selected assets from this action's release.
+
+inputs:
+  files:
+    description: Optional release asset filenames to download (whitespace-delimited).
+    required: false
+  destination:
+    description: Download destination. Defaults to $GITHUB_WORKSPACE.
+    required: false
+    default: "."
+
+outputs:
+  release-tag:
+    description: The published release tag selected by this action's reference.
+    value: ${{ steps.resolve.outputs.release-tag }}
+
+runs:
+  using: composite
+  steps:
+    - id: resolve
+      name: Resolve release tag
+      shell: bash
+      env:
+        ACTION_REF: ${{ github.action_ref }}
+        ACTION_REPOSITORY: ${{ github.action_repository }}
+        GITHUB_API_URL: ${{ github.api_url }}
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+
+        release_tag="$("${GITHUB_ACTION_PATH}/scripts/resolve-release-tag.sh" \
+          "${ACTION_REF}" "${ACTION_REPOSITORY}" "${GITHUB_API_URL}")"
+        echo "release-tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+
+    - id: download
+      name: Download and verify release assets
+      shell: bash
+      env:
+        ACTION_REPOSITORY: ${{ github.action_repository }}
+        GITHUB_SERVER_URL: ${{ github.server_url }}
+        GITHUB_TOKEN: ${{ github.token }}
+        REQUESTED_FILES: ${{ inputs.files }}
+        DESTINATION: ${{ inputs.destination }}
+      run: |
+        set -euo pipefail
+
+        if [[ "${REQUESTED_FILES}" =~ [^[:space:]] ]]; then
+          "${GITHUB_ACTION_PATH}/scripts/download-release-assets.sh" \
+            "${{ steps.resolve.outputs.release-tag }}" \
+            "${ACTION_REPOSITORY}" "${GITHUB_SERVER_URL}" "${DESTINATION}"
+        fi
